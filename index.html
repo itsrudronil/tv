@@ -68,19 +68,19 @@
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
         // ================= CONFIGURATION =================
-        const SERVER_URL = "http://dvltv.cc:80"; // Apnar Xtream Server URL
-        const USERNAME = "talukderrudronil";                   // Apnar Username
-        const PASSWORD = "talRudronil8";                   // Apnar Password
+        const SERVER_URL = "http://dvltv.cc:80"; // Apnar Xtream Server URL (screenshot theke neoa)
+        const USERNAME = "apnar_username";       // Apnar Username
+        const PASSWORD = "apnar_password";       // Apnar Password
         // ==================================================
 
         var player = videojs('my-player');
 
-        // Fetch Live Streams from Xtream API using a CORS Proxy
+        // Fetch Live Streams using a reliable CORS proxy
         async function loadChannels() {
             const targetURL = `${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
             
-            // Using a public CORS proxy to bypass browser security blocks
-            const apiURL = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetURL)}`;
+            // Using corsproxy.io instead of allorigins
+            const apiURL = `https://corsproxy.io/?${encodeURIComponent(targetURL)}`;
             
             try {
                 let response = await fetch(apiURL);
