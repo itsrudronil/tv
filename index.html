@@ -3,58 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Web TV Player</title>
-    <link rel="stylesheet" href="style.css">
-    <!-- FontAwesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- HLS.js for streaming -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <title>My Xtream Web Player</title>
+    <!-- Video.js Player CSS -->
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <style>
+        body {
+            margin: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 300px;
+            background: #1e1e1e;
+            padding: 15px;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .channel-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #2a2a2a;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .channel-item:hover {
+            background: #3a3a3a;
+        }
+        .video-container {
+            width: 100%;
+            max-width: 900px;
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Mobile Header Toggle -->
-    <div class="mobile-header">
-        <button id="sidebar-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
-        <h2>Pro TV Player</h2>
+    <!-- Sidebar for Channel List -->
+    <div class="sidebar">
+        <h3>Live Channels</h3>
+        <div id="channel-list">Loading channels...</div>
     </div>
 
-    <div id="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h3><i class="fa-solid fa-tv"></i> Live TV</h3>
-                <button class="close-btn" onclick="toggleSidebar()"><i class="fa-solid fa-xmark"></i></button>
-            </div>
+    <!-- Main Player Area -->
+    <div class="main-content">
+        <div class="video-container">
+            <video-js id="my-player" class="vjs-big-play-centered" controls preload="auto" width="854" height="480">
+                <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that supports HTML5 video</p>
+            </video-js>
+        </div>
+    </div>
+
+    <!-- Video.js Script -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        // ================= CONFIGURATION =================
+        const SERVER_URL = "http://dvltv.cc:80"; // Apnar Xtream Server URL
+        const USERNAME = "talukderrudronil";                   // Apnar Username
+        const PASSWORD = "talRudronil8";                   // Apnar Password
+        // ==================================================
+
+        var player = videojs('my-player');
+
+        // Fetch Live Streams from Xtream API
+        async function loadChannels() {
+            const apiURL = `${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`;
             
-            <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="search" placeholder="Search channel..." onkeyup="filterChannels()">
-            </div>
+            try {
+                let response = await fetch(apiURL);
+                let channels = await response.json();
+                
+                let listContainer = document.getElementById('channel-list');
+                listContainer.innerHTML = "";
 
-            <!-- Category Filter Tabs -->
-            <div class="categories" id="category-tabs">
-                <button class="cat-btn active" onclick="filterCategory('All')">All</button>
-                <button class="cat-btn" onclick="filterCategory('Sports')">Sports</button>
-                <button class="cat-btn" onclick="filterCategory('News')">News</button>
-                <button class="cat-btn" onclick="filterCategory('Movies')">Movies</button>
-            </div>
+                if(Array.isArray(channels)) {
+                    channels.forEach(channel => {
+                        let div = document.createElement('div');
+                        div.className = 'channel-item';
+                        div.innerText = channel.name;
+                        div.onclick = () => playChannel(channel.stream_id);
+                        listContainer.appendChild(div);
+                    });
+                } else {
+                    listContainer.innerText = "Failed to load channels. Check credentials.";
+                }
+            } catch (error) {
+                console.error("Error fetching channels:", error);
+                document.getElementById('channel-list').innerText = "Error connecting to server.";
+            }
+        }
 
-            <ul id="channel-list">
-                <!-- Channels will load here -->
-            </ul>
-        </div>
+        // Play Selected Channel
+        function playChannel(streamId) {
+            // Xtream Codes live stream link format (.m3u8 for HLS)
+            let streamURL = `${SERVER_URL}/live/${USERNAME}/${PASSWORD}/${streamId}.m3u8`;
+            player.src({ src: streamURL, type: 'application/x-mpegURL' });
+            player.play();
+        }
 
-        <!-- Main Player Section -->
-        <div class="main-player">
-            <div class="player-wrapper">
-                <h2 id="current-channel-name"><i class="fa-solid fa-circle-play"></i> Select a channel to watch</h2>
-                <div class="video-container">
-                    <video id="video-player" controls autoplay></video>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+        // Initialize on load
+        loadChannels();
+    </script>
 </body>
 </html>
