@@ -1,7 +1,7 @@
 // ====== এখানে আপনার পার্মানেন্ট Xtream Code ইনফরমেশন বসিয়ে দিন ======
-const SERVER_URL = "http://your-server-url.com:8080"; // আপনার সার্ভার ইউআরএল (শেষে / রাখবেন না)
-const USERNAME = "your_username";                     // আপনার ইউজারনেম
-const PASSWORD = "your_password";                     // আপনার পাসওয়ার্ড
+const SERVER_URL = "http://dvltv.cc:80"; // আপনার সার্ভার ইউআরএল (শেষে / রাখবেন না)
+const USERNAME = "talukderrudronil";                     // আপনার ইউজারনেম
+const PASSWORD = "talRudronil8";                     // আপনার পাসওয়ার্ড
 // ====================================================================
 
 let allChannels = [];
