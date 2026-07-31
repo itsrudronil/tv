@@ -65,22 +65,17 @@
     <script>
         // ================= CONFIGURATION =================
         const SERVER_URL = "http://dvltv.cc:80"; // Apnar Xtream Server URL
-        const USERNAME = "talukderrudronil";     // Apnar Username
-        const PASSWORD = "talRudronil8";         // Apnar Password
+        const USERNAME = "talukderrudronil";       // Apnar Username
+        const PASSWORD = "talRudronil8";       // Apnar Password (Boro hater PASSWORD)
         // ==================================================
 
         var player = videojs('my-player');
 
         async function loadChannels() {
-            // M3U Playlist link use korchi (CORS bypass korte sahajjo kore)
-            const m3uURL = `${SERVER_URL}/get.php?username=${USERNAME}&password=${password}&type=m3u_plus`;
-            const proxyURL = `https://api.allorigins.win/raw?url=${encodeURIComponent(`${SERVER_URL}/player_api.php?username=${USERNAME}&password=${PASSWORD}&action=get_live_streams`)}`;
-            
-            // Alternatively, jodi m3u link use koren:
+            // Sothik variable (PASSWORD) use kora holo
             const directM3U = `${SERVER_URL}/get.php?username=${USERNAME}&password=${PASSWORD}&type=m3u`;
 
             try {
-                // Direct Xtream M3U download endpoint fetch
                 let response = await fetch(`https://corsproxy.io/?${encodeURIComponent(directM3U)}`);
                 let data = await response.text();
                 
@@ -114,7 +109,7 @@
                 }
             } catch (error) {
                 console.error("Error:", error);
-                document.getElementById('channel-list').innerText = "Failed to load M3U playlist. Try Vercel deployment.";
+                document.getElementById('channel-list').innerText = "Failed to load M3U playlist.";
             }
         }
 
