@@ -3,59 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Xtream Web Player</title>
+    <title>Python Xtream Player with Category & Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
-    <style>
-        body {
-            margin: 0;
-            background-color: #121212;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            display: flex;
-            height: 100vh;
-        }
-        .sidebar {
-            width: 300px;
-            background: #1e1e1e;
-            padding: 15px;
-            overflow-y: auto;
-            border-right: 1px solid #333;
-        }
-        .main-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .channel-item {
-            padding: 10px;
-            margin-bottom: 5px;
-            background: #2a2a2a;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .channel-item:hover {
-            background: #3a3a3a;
-        }
-        .video-container {
-            width: 100%;
-            max-width: 900px;
-        }
-    </style>
 </head>
 <body>
 
     <div class="sidebar">
         <h3>Live Channels</h3>
+        <!-- Search & Category Filter Section -->
+        <div class="controls">
+            <input type="text" id="search-box" placeholder="Search channel..." onkeyup="filterChannels()">
+            <select id="category-select" onchange="filterChannels()">
+                <option value="all">All Categories</option>
+            </select>
+        </div>
         <div id="channel-list">Loading channels...</div>
     </div>
 
     <div class="main-content">
-        <div class="video-container">
-            <video-js id="my-player" class="vjs-big-play-centered" controls preload="auto" width="854" height="480">
+        <div class="video-container" style="width: 100%; max-width: 800px;">
+            <video-js id="my-player" class="vjs-big-play-centered" controls preload="auto" width="720" height="400">
                 <p class="vjs-no-js">To view this video please enable JavaScript</p>
             </video-js>
         </div>
@@ -63,62 +31,79 @@
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
-        // ================= CONFIGURATION =================
-        const SERVER_URL = "http://dvltv.cc:80"; // Apnar Xtream Server URL
-        const USERNAME = "talukderrudronil";       // Apnar Username
-        const PASSWORD = "talRudronil8";       // Apnar Password (Boro hater PASSWORD)
-        // ==================================================
-
         var player = videojs('my-player');
+        let allChannels = [];
+        let categoriesMap = {};
 
-        async function loadChannels() {
-            // Sothik variable (PASSWORD) use kora holo
-            const directM3U = `${SERVER_URL}/get.php?username=${USERNAME}&password=${PASSWORD}&type=m3u`;
-
+        // Fetch categories and streams from backend
+        async function loadData() {
             try {
-                let response = await fetch(`https://corsproxy.io/?${encodeURIComponent(directM3U)}`);
-                let data = await response.text();
+                let catRes = await fetch('/api/categories');
+                let categories = await catRes.json();
                 
-                let listContainer = document.getElementById('channel-list');
-                listContainer.innerHTML = "";
-
-                let lines = data.split('\n');
-                let channels = [];
-                
-                for (let i = 0; i < lines.length; i++) {
-                    if (lines[i].startsWith('#EXTINF:')) {
-                        let nameMatch = lines[i].match(/tvg-name="([^"]*)"|,(.+)$/);
-                        let name = nameMatch ? (nameMatch[1] || nameMatch[2]) : "Channel";
-                        let url = lines[i + 1] ? lines[i + 1].trim() : "";
-                        if (url) {
-                            channels.push({ name: name, url: url });
-                        }
-                    }
-                }
-
-                if (channels.length > 0) {
-                    channels.forEach(channel => {
-                        let div = document.createElement('div');
-                        div.className = 'channel-item';
-                        div.innerText = channel.name;
-                        div.onclick = () => playChannel(channel.url);
-                        listContainer.appendChild(div);
+                let catSelect = document.getElementById('category-select');
+                if(Array.isArray(categories)) {
+                    categories.forEach(cat => {
+                        categoriesMap[cat.category_id] = cat.category_name;
+                        let option = document.createElement('option');
+                        option.value = cat.category_id;
+                        option.innerText = cat.category_name;
+                        catSelect.appendChild(option);
                     });
-                } else {
-                    listContainer.innerText = "No channels found in playlist.";
                 }
-            } catch (error) {
-                console.error("Error:", error);
-                document.getElementById('channel-list').innerText = "Failed to load M3U playlist.";
+
+                let streamRes = await fetch('/api/channels');
+                allChannels = await streamRes.json();
+                displayChannels(allChannels);
+
+            } catch (err) {
+                document.getElementById('channel-list').innerText = "Error loading data.";
             }
         }
 
-        function playChannel(streamURL) {
-            player.src({ src: streamURL, type: 'application/x-mpegURL' });
-            player.play();
+        function displayChannels(channels) {
+            let listContainer = document.getElementById('channel-list');
+            listContainer.innerHTML = '';
+            
+            if(Array.isArray(channels) && channels.length > 0) {
+                channels.forEach(channel => {
+                    let div = document.createElement('div');
+                    div.className = 'channel-item';
+                    div.innerText = channel.name;
+                    div.onclick = () => playChannel(channel.stream_id);
+                    listContainer.appendChild(div);
+                });
+            } else {
+                listContainer.innerText = "No channels found.";
+            }
         }
 
-        loadChannels();
+        // Search & Category Filter Logic
+        function filterChannels() {
+            let searchQuery = document.getElementById('search-box').value.toLowerCase();
+            let selectedCat = document.getElementById('category-select').value;
+
+            let filtered = allChannels.filter(channel => {
+                let matchesSearch = channel.name.toLowerCase().includes(searchQuery);
+                let matchesCat = (selectedCat === 'all' || channel.category_id == selectedCat);
+                return matchesSearch && matchesCat;
+            });
+
+            displayChannels(filtered);
+        }
+
+        function playChannel(streamId) {
+            fetch(`/api/play/${streamId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if(data.url) {
+                        player.src({ src: data.url, type: 'application/x-mpegURL' });
+                        player.play();
+                    }
+                });
+        }
+
+        loadData();
     </script>
 </body>
 </html>
