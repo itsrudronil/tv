@@ -38,8 +38,6 @@ def get_channels():
 
 @app.route('/api/play/<stream_id>')
 def play_stream(stream_id):
+    # ডাইরেক্ট লিংকের পরিবর্তে পাইথন ব্যাকএন্ড দিয়ে স্ট্রিম রাউট করা
     stream_url = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
     return jsonify({"url": stream_url})
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
