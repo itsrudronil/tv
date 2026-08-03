@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, Response
 import requests
 import os
 
@@ -38,6 +38,13 @@ def get_channels():
 
 @app.route('/api/play/<stream_id>')
 def play_stream(stream_id):
-    # ডাইরেক্ট লিংকের পরিবর্তে পাইথন ব্যাকএন্ড দিয়ে স্ট্রিম রাউট করা
+    # m3u8 লিংক ব্রাউজারে না পাঠিয়ে ব্যাকএন্ড দিয়ে স্ট্রিম করা
     stream_url = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
-    return jsonify({"url": stream_url})
+    try:
+        req = requests.get(stream_url, stream=True)
+        return Response(
+            req.iter_content(chunk_size=1024), 
+            content_type=req.headers.get('content-type', 'application/x-mpegURL')
+        )
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
