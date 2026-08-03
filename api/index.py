@@ -38,13 +38,6 @@ def get_channels():
 
 @app.route('/api/play/<stream_id>')
 def play_stream(stream_id):
-    # m3u8 লিংক ব্রাউজারে না পাঠিয়ে ব্যাকএন্ড দিয়ে স্ট্রিম করা
+    # JSON হিসেবে ভিডিও লিংক ফ্রন্টএন্ডে পাঠানো হবে
     stream_url = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
-    try:
-        req = requests.get(stream_url, stream=True)
-        return Response(
-            req.iter_content(chunk_size=1024), 
-            content_type=req.headers.get('content-type', 'application/x-mpegURL')
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"url": stream_url})
