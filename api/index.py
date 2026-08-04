@@ -9,8 +9,8 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
 # ================= কনফিগারেশন =================
 SERVER_URL = "http://dvltv.cc:80"
-USERNAME = "apnar_username"
-PASSWORD = "apnar_password"
+USERNAME = "talukderrudronil"
+PASSWORD = "talRudronil8"
 
 # আপনার তৈরি করা ক্লাউডফ্লেয়ার ওয়ার্কারের লিংকটি এখানে দিন
 CF_WORKER_URL = "https://ancient-scene-c50c.soumyadeeptalukderrudronil.workers.dev/" 
