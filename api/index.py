@@ -1,6 +1,5 @@
-from flask import Flask, jsonify, render_template, Response, request
+from flask import Flask, jsonify, render_template
 import requests
-import urllib.parse
 import os
 
 template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../templates'))
@@ -10,8 +9,11 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 
 # ================= কনফিগারেশন =================
 SERVER_URL = "http://dvltv.cc:80"
-USERNAME = "talukderrudronil"
-PASSWORD = "talRudronil8"
+USERNAME = "apnar_username"
+PASSWORD = "apnar_password"
+
+# আপনার তৈরি করা ক্লাউডফ্লেয়ার ওয়ার্কারের লিংকটি এখানে দিন
+CF_WORKER_URL = "https://ancient-scene-c50c.soumyadeeptalukderrudronil.workers.dev/" 
 # ===============================================
 
 @app.route('/')
@@ -36,52 +38,15 @@ def get_channels():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# M3U8 প্লেলিস্ট প্রক্সি এবং লিংক রিরাইট
-@app.route('/api/play/<stream_id>.m3u8')
+@app.route('/api/play/<stream_id>')
 def play_stream(stream_id):
-    m3u8_url = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
-    try:
-        res = requests.get(m3u8_url, timeout=10)
-        lines = res.text.splitlines()
-        rewritten_lines = []
-        
-        base_stream_path = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/"
-        
-        for line in lines:
-            line_str = line.strip()
-            if line_str and not line_str.startswith('#'):
-                if not line_str.startswith('http'):
-                    full_ts_url = base_stream_path + line_str
-                else:
-                    full_ts_url = line_str
-                
-                encoded_url = urllib.parse.quote(full_ts_url)
-                proxy_ts_url = f"/api/segment?url={encoded_url}"
-                rewritten_lines.append(proxy_ts_url)
-            else:
-                rewritten_lines.append(line)
-        
-        content = "\n".join(rewritten_lines)
-        response = Response(content, content_type='application/x-mpegURL')
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# ভিডিও সেগমেন্ট (.ts) প্রক্সি
-@app.route('/api/segment')
-def proxy_segment():
-    ts_url = request.args.get('url')
-    if not ts_url:
-        return "Missing URL", 400
+    # অরিজিনাল HTTP লিংক
+    raw_m3u8 = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
     
-    try:
-        ts_res = requests.get(ts_url, stream=True, timeout=10)
-        response = Response(ts_res.iter_content(chunk_size=64*1024), content_type='video/mp2t')
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        return response
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # ক্লাউডফ্লেয়ার দিয়ে মোড়ানো HTTPS লিংক
+    proxied_url = f"{CF_WORKER_URL}/?url={raw_m3u8}"
+    
+    return jsonify({"url": proxied_url})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
