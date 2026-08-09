@@ -10,7 +10,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 # ================= কনফিগারেশন =================
 SERVER_URL = "http://dvltv.cc:80"
 USERNAME = "talukderrudronil"
-PASSWORD = "talRUdronil8"
+PASSWORD = "talRudronil8"
 # ===============================================
 
 @app.route('/')
