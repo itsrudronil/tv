@@ -13,6 +13,33 @@
             font-weight: bold;
             border-left: 4px solid #fff;
         }
+        .player-options {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .btn-player {
+            display: inline-block;
+            padding: 12px 24px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 15px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .btn-player:active {
+            transform: scale(0.98);
+        }
+        .btn-vlc { background-color: #ff8c00; }
+        .btn-mx { background-color: #007bff; }
+        .btn-direct { background-color: #28a745; }
     </style>
 </head>
 <body>
@@ -30,8 +57,16 @@
 
     <div class="main-content">
         <div class="video-container" style="width: 100%; max-width: 800px; text-align: center;">
-            <video id="video-player" controls autoplay style="width: 100%; height: 420px; background: #000; border-radius: 8px;"></video>
-            <div id="error-message" style="color: #ff4d4d; display: none; margin-top: 15px; font-weight: bold;"></div>
+            <video id="video-player" controls autoplay style="width: 100%; height: 380px; background: #000; border-radius: 8px;"></video>
+            
+            <div id="player-selection" style="margin-top: 20px;">
+                <h4 style="color: #ccc; margin-bottom: 10px;">ভিডিও প্লেয়ার সিলেক্ট করুন:</h4>
+                <div class="player-options">
+                    <a id="vlc-btn" href="#" class="btn-player btn-vlc">🟠 VLC Player-এ চালান</a>
+                    <a id="mx-btn" href="#" class="btn-player btn-mx">🟦 MX Player-এ চালান</a>
+                    <a id="direct-btn" href="#" target="_blank" class="btn-player btn-direct">🟩 ডাইরেক্ট লিংক ওপেন করুন</a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -103,15 +138,13 @@
         }
 
         function playChannel(streamId) {
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.style.display = 'none';
-            
             fetch(`/api/play/${streamId}`)
                 .then(res => res.json())
                 .then(data => {
                     if(data.url) {
                         let streamUrl = data.url;
 
+                        // ১. ডাইরেক্ট ব্রাউজার প্লেয়ার চেষ্টা (ডেস্কটপ বা সাপোর্টেড ব্রাউজারে)
                         if (Hls.isSupported()) {
                             if (hls) { hls.destroy(); }
                             hls = new Hls();
@@ -120,16 +153,20 @@
                             hls.on(Hls.Events.MANIFEST_PARSED, function() {
                                 video.play().catch(e => console.log("Autoplay block:", e));
                             });
-                            hls.on(Hls.Events.ERROR, function (event, data) {
-                                if (data.fatal) {
-                                    errorDiv.innerText = "স্ট্রিমিং শুরু করতে সমস্যা হচ্ছে। আবার চেষ্টা করুন।";
-                                    errorDiv.style.display = 'block';
-                                }
-                            });
                         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                             video.src = streamUrl;
                             video.play();
                         }
+
+                        // ২. অ্যান্ড্রয়েড এক্সটার্নাল প্লেয়ার ইন্টেন্ট (Intent Links)
+                        let cleanUrl = streamUrl.replace('http://', '').replace('https://', '');
+                        
+                        let vlcIntent = `intent://${cleanUrl}#Intent;package=org.videolan.vlc;type=video/*;scheme=http;end;`;
+                        let mxIntent = `intent://${cleanUrl}#Intent;package=com.mxtech.videoplayer.ad;type=video/*;scheme=http;end;`;
+
+                        document.getElementById('vlc-btn').href = vlcIntent;
+                        document.getElementById('mx-btn').href = mxIntent;
+                        document.getElementById('direct-btn').href = streamUrl;
                     }
                 });
         }
