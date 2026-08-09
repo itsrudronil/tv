@@ -10,10 +10,7 @@ app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
 # ================= কনফিগারেশন =================
 SERVER_URL = "http://dvltv.cc:80"
 USERNAME = "talukderrudronil"
-PASSWORD = "talRudronil8"
-
-# আপনার তৈরি করা ক্লাউডফ্লেয়ার ওয়ার্কারের লিংকটি এখানে দিন
-CF_WORKER_URL = "https://ancient-scene-c50c.soumyadeeptalukderrudronil.workers.dev/" 
+PASSWORD = "talRUdronil8"
 # ===============================================
 
 @app.route('/')
@@ -40,13 +37,8 @@ def get_channels():
 
 @app.route('/api/play/<stream_id>')
 def play_stream(stream_id):
-    # অরিজিনাল HTTP লিংক
-    raw_m3u8 = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
-    
-    # ক্লাউডফ্লেয়ার দিয়ে মোড়ানো HTTPS লিংক
-    proxied_url = f"{CF_WORKER_URL}/?url={raw_m3u8}"
-    
-    return jsonify({"url": proxied_url})
+    stream_url = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
+    return jsonify({"url": stream_url})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
