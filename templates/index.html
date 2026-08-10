@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Python Xtream Player</title>
+    <title>Live TV Player</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
@@ -45,14 +45,14 @@
 <body>
 
     <div class="sidebar">
-        <h3>লাইভ চ্যানেল</h3>
+        <h3>Live Channel</h3>
         <div class="controls">
-            <input type="text" id="search-box" placeholder="চ্যানেল খুঁজুন..." onkeyup="filterChannels()">
+            <input type="text" id="search-box" placeholder="Find Channel..." onkeyup="filterChannels()">
             <select id="category-select" onchange="filterChannels()">
-                <option value="all">সকল ক্যাটাগরি</option>
+                <option value="all">All Category</option>
             </select>
         </div>
-        <div id="channel-list">চ্যানেল লোড হচ্ছে...</div>
+        <div id="channel-list">Channel Loading...</div>
     </div>
 
     <div class="main-content">
@@ -60,11 +60,11 @@
             <video id="video-player" controls autoplay style="width: 100%; height: 380px; background: #000; border-radius: 8px;"></video>
             
             <div id="player-selection" style="margin-top: 20px;">
-                <h4 style="color: #ccc; margin-bottom: 10px;">ভিডিও প্লেয়ার সিলেক্ট করুন:</h4>
+                <h4 style="color: #ccc; margin-bottom: 10px;">Select Player:</h4>
                 <div class="player-options">
-                    <a id="vlc-btn" href="#" class="btn-player btn-vlc">🟠 VLC Player-এ চালান</a>
-                    <a id="mx-btn" href="#" class="btn-player btn-mx">🟦 MX Player-এ চালান</a>
-                    <a id="direct-btn" href="#" target="_blank" class="btn-player btn-direct">🟩 ডাইরেক্ট লিংক ওপেন করুন</a>
+                    <a id="vlc-btn" href="#" class="btn-player btn-vlc">🟠 VLC Player</a>
+                    <a id="mx-btn" href="#" class="btn-player btn-mx">🟦 MX Player</a>
+                    <a id="direct-btn" href="#" target="_blank" class="btn-player btn-direct">🟩 Direct link</a>
                 </div>
             </div>
         </div>
@@ -97,7 +97,7 @@
                 displayChannels(allChannels);
 
             } catch (err) {
-                document.getElementById('channel-list').innerText = "ডেটা লোড করতে সমস্যা হয়েছে।";
+                document.getElementById('channel-list').innerText = "Failed to load data";
             }
         }
 
@@ -120,7 +120,7 @@
                     listContainer.appendChild(div);
                 });
             } else {
-                listContainer.innerText = "কোনো চ্যানেল পাওয়া যায়নি।";
+                listContainer.innerText = "No Was Found";
             }
         }
 
