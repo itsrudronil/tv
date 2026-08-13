@@ -1,44 +1,36 @@
-from flask import Flask, jsonify, render_template
-import requests
+from http.server import BaseHTTPRequestHandler
+import json
 import os
 
-template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../templates'))
-static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../static'))
-
-app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
-
-# ================= কনফিগারেশন =================
-SERVER_URL = "http://dvltv.cc:80"
-USERNAME = "talukderrudronil"
-PASSWORD = "talRudronil8"
-# ===============================================
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/api/categories')
-def get_categories():
-    api_url = f"{SERVER_URL}/player_api.php?username={USERNAME}&password={PASSWORD}&action=get_live_categories"
-    try:
-        response = requests.get(api_url, timeout=10)
-        return jsonify(response.json())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/channels')
-def get_channels():
-    api_url = f"{SERVER_URL}/player_api.php?username={USERNAME}&password={PASSWORD}&action=get_live_streams"
-    try:
-        response = requests.get(api_url, timeout=10)
-        return jsonify(response.json())
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/play/<stream_id>')
-def play_stream(stream_id):
-    stream_url = f"{SERVER_URL}/live/{USERNAME}/{PASSWORD}/{stream_id}.m3u8"
-    return jsonify({"url": stream_url})
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        try:
+            # Path to your m3u file in the root directory
+            file_path = os.path.join(os.getcwd(), 'playlist.m3u')
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            
+            channels = []
+            for i in range(len(lines)):
+                line = lines[i].strip()
+                if line.startswith('#EXTINF:'):
+                    # Channel name is always after the last comma
+                    name = line.split(',')[-1].strip()
+                    if i + 1 < len(lines):
+                        url = lines[i + 1].strip()
+                        if not url.startswith('#'):
+                            channels.append({"name": name, "url": url})
+            
+            # Send JSON response back to the frontend
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(channels).encode('utf-8'))
+            
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
