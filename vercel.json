@@ -1,15 +1,7 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "builds": [
-    {
-      "src": "api/playlist.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "destination": "/api/playlist.py"
-    }
+  "rewrites": [
+    { "source": "/api/playlist", "destination": "/api/playlist.py" }
   ]
 }
