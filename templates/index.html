@@ -2,176 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live TV Player</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Pro IPTV Player</title>
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <style>
-        .channel-item.active {
-            background: #ff4d4d !important;
-            color: #fff;
-            font-weight: bold;
-            border-left: 4px solid #fff;
-        }
-        .player-options {
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-        }
-        .btn-player {
-            display: inline-block;
-            padding: 12px 24px;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 15px;
-            width: 80%;
-            max-width: 300px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
-        }
-        .btn-player:active {
-            transform: scale(0.98);
-        }
-        .btn-vlc { background-color: #ff8c00; }
-        .btn-mx { background-color: #007bff; }
-        .btn-direct { background-color: #28a745; }
-    </style>
 </head>
 <body>
-
-    <div class="sidebar">
-        <h3>Live Channel</h3>
-        <div class="controls">
-            <input type="text" id="search-box" placeholder="Find Channel..." onkeyup="filterChannels()">
-            <select id="category-select" onchange="filterChannels()">
-                <option value="all">All Category</option>
-            </select>
-        </div>
-        <div id="channel-list">Channel Loading...</div>
+    <div class="player-container">
+        <h1>My Web TV</h1>
+        <video id="video" controls autoplay></video>
+        
+        <input type="text" id="search" placeholder="Search channels...">
+        
+        <div id="channel-list"></div>
     </div>
-
-    <div class="main-content">
-        <div class="video-container" style="width: 100%; max-width: 800px; text-align: center;">
-            <video id="video-player" controls autoplay style="width: 100%; height: 380px; background: #000; border-radius: 8px;"></video>
-            
-            <div id="player-selection" style="margin-top: 20px;">
-                <h4 style="color: #ccc; margin-bottom: 10px;">Select Player:</h4>
-                <div class="player-options">
-                    <a id="vlc-btn" href="#" class="btn-player btn-vlc">🟠 VLC Player</a>
-                    <a id="mx-btn" href="#" class="btn-player btn-mx">🟦 MX Player</a>
-                    <a id="direct-btn" href="#" target="_blank" class="btn-player btn-direct">🟩 Direct link</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let allChannels = [];
-        let categoriesMap = {};
-        const video = document.getElementById('video-player');
-        let hls = null;
-
-        async function loadData() {
-            try {
-                let catRes = await fetch('/api/categories');
-                let categories = await catRes.json();
-                
-                let catSelect = document.getElementById('category-select');
-                if(Array.isArray(categories)) {
-                    categories.forEach(cat => {
-                        categoriesMap[cat.category_id] = cat.category_name;
-                        let option = document.createElement('option');
-                        option.value = cat.category_id;
-                        option.innerText = cat.category_name;
-                        catSelect.appendChild(option);
-                    });
-                }
-
-                let streamRes = await fetch('/api/channels');
-                allChannels = await streamRes.json();
-                displayChannels(allChannels);
-
-            } catch (err) {
-                document.getElementById('channel-list').innerText = "Failed to load data";
-            }
-        }
-
-        function displayChannels(channels) {
-            let listContainer = document.getElementById('channel-list');
-            listContainer.innerHTML = '';
-            
-            if(Array.isArray(channels) && channels.length > 0) {
-                channels.forEach(channel => {
-                    let div = document.createElement('div');
-                    div.className = 'channel-item';
-                    div.innerText = channel.name;
-                    
-                    div.onclick = function() {
-                        document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-                        this.classList.add('active');
-                        playChannel(channel.stream_id);
-                    };
-                    
-                    listContainer.appendChild(div);
-                });
-            } else {
-                listContainer.innerText = "No Was Found";
-            }
-        }
-
-        function filterChannels() {
-            let searchQuery = document.getElementById('search-box').value.toLowerCase();
-            let selectedCat = document.getElementById('category-select').value;
-
-            let filtered = allChannels.filter(channel => {
-                let matchesSearch = channel.name.toLowerCase().includes(searchQuery);
-                let matchesCat = (selectedCat === 'all' || channel.category_id == selectedCat);
-                return matchesSearch && matchesCat;
-            });
-
-            displayChannels(filtered);
-        }
-
-        function playChannel(streamId) {
-            fetch(`/api/play/${streamId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if(data.url) {
-                        let streamUrl = data.url;
-
-                        // ১. ডাইরেক্ট ব্রাউজার প্লেয়ার চেষ্টা (ডেস্কটপ বা সাপোর্টেড ব্রাউজারে)
-                        if (Hls.isSupported()) {
-                            if (hls) { hls.destroy(); }
-                            hls = new Hls();
-                            hls.loadSource(streamUrl);
-                            hls.attachMedia(video);
-                            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                                video.play().catch(e => console.log("Autoplay block:", e));
-                            });
-                        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                            video.src = streamUrl;
-                            video.play();
-                        }
-
-                        // ২. অ্যান্ড্রয়েড এক্সটার্নাল প্লেয়ার ইন্টেন্ট (Intent Links)
-                        let cleanUrl = streamUrl.replace('http://', '').replace('https://', '');
-                        
-                        let vlcIntent = `intent://${cleanUrl}#Intent;package=org.videolan.vlc;type=video/*;scheme=http;end;`;
-                        let mxIntent = `intent://${cleanUrl}#Intent;package=com.mxtech.videoplayer.ad;type=video/*;scheme=http;end;`;
-
-                        document.getElementById('vlc-btn').href = vlcIntent;
-                        document.getElementById('mx-btn').href = mxIntent;
-                        document.getElementById('direct-btn').href = streamUrl;
-                    }
-                });
-        }
-
-        loadData();
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
