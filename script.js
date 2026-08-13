@@ -81,23 +81,54 @@ function renderChannels(channelArray) {
     });
 }
 
-// Play channel logic using HLS.js or standard HTML5 video
+// Play channel logic with error handling
 function playChannel(channel) {
     currentChannelNameEl.textContent = `PLAYING: ${channel.name.toUpperCase()}`;
     
+    // Clean up previous HLS instance if it exists
+    if (hls) {
+        hls.destroy();
+        hls = null;
+    }
+
     if (Hls.isSupported() && channel.url.includes('.m3u8')) {
-        if (hls) {
-            hls.destroy();
-        }
         hls = new Hls();
         hls.loadSource(channel.url);
         hls.attachMedia(videoPlayer);
+        
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            videoPlayer.play();
+            videoPlayer.play().catch(err => {
+                console.warn("Autoplay blocked or stream failed:", err);
+                currentChannelNameEl.textContent = `ERROR: PLAYBACK BLOCKED`;
+            });
+        });
+
+        // Catch stream loading/network errors
+        hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+                switch (data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        console.warn("Network error encountered. Check if the stream is offline or blocking HTTP/HTTPS.");
+                        currentChannelNameEl.textContent = `ERROR: NETWORK/CORS BLOCKED`;
+                        hls.startLoad();
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        console.warn("Media error encountered, trying to recover...");
+                        hls.recoverMediaError();
+                        break;
+                    default:
+                        currentChannelNameEl.textContent = `ERROR: STREAM UNAVAILABLE`;
+                        hls.destroy();
+                        break;
+                }
+            }
         });
     } else {
+        // Fallback for standard video sources (mp4, etc.)
         videoPlayer.src = channel.url;
-        videoPlayer.play();
+        videoPlayer.play().catch(err => {
+            currentChannelNameEl.textContent = `ERROR: FORMAT NOT SUPPORTED`;
+        });
     }
 }
 
