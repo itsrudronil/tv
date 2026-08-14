@@ -2,51 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS-TV // Cyber IPTV Terminal</title>
+    <title>Web IPTV Player</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Include HLS.js for stream compatibility -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 </head>
 <body>
-    <div class="terminal-container">
-        <!-- Top Header / Controls -->
-        <header class="cyber-header">
-            <div class="logo">
-                <span class="pulse-dot"></span>
-                <h1>NEXUS_TV</h1>
-            </div>
-            <div class="playlist-loader">
-                <label for="m3u-file" class="cyber-btn">Load M3U File</label>
-                <input type="file" id="m3u-file" accept=".m3u" style="display: none;">
-            </div>
-        </header>
-
-        <!-- Main Dashboard Grid -->
-        <div class="dashboard-grid">
-            <!-- Sidebar: Channel List -->
-            <aside class="sidebar glass-panel">
-                <div class="sidebar-header">
-                    <h3>Channels</h3>
-                    <input type="text" id="search-input" placeholder="Search frequency..." />
-                </div>
-                <div id="channel-list" class="channel-list">
-                    <div class="no-playlist">Awaiting M3U transmission... Upload a file to initialize feed.</div>
-                </div>
-            </aside>
-
-            <!-- Main Stage: Video Player & HUD -->
-            <main class="main-stage glass-panel">
-                <div class="video-container">
-                    <video id="video-player" controls autoplay></video>
-                    <div class="hud-overlay">
-                        <span id="current-channel-name">STATUS: OFFLINE</span>
-                    </div>
-                </div>
-            </main>
-        </div>
+    <div class="player-container">
+        <h1>My Web TV</h1>
+        <video id="video" controls autoplay></video>
+        <input type="text" id="search" placeholder="Search channels...">
+        <div id="channel-list">Loading channels...</div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
