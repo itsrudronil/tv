@@ -1,140 +1,73 @@
-const fileInput = document.getElementById('m3u-file');
-const channelListEl = document.getElementById('channel-list');
-const videoPlayer = document.getElementById('video-player');
-const currentChannelNameEl = document.getElementById('current-channel-name');
-const searchInput = document.getElementById('search-input');
-
+const video = document.getElementById('video');
+const listDiv = document.getElementById('channel-list');
+const searchInput = document.getElementById('search');
+const hls = new Hls();
 let channels = [];
-let hls = null;
 
-// Automatically load the default playlist on startup
-window.addEventListener('DOMContentLoaded', () => {
-    loadPlaylistFromFilePath('playlist.m3u');
-});
-
-// Handle custom file selection via upload button
-fileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const content = e.target.result;
-        channels = parseM3U(content);
-        renderChannels(channels);
-    };
-    reader.readAsText(file);
-});
-
-// Fetch playlist from a local or remote URL/file path
-async function loadPlaylistFromFilePath(filePath) {
+async function loadPlaylist() {
     try {
-        const response = await fetch(filePath);
-        if (!response.ok) throw new Error('Could not load default playlist');
-        const content = await response.text();
-        channels = parseM3U(content);
-        renderChannels(channels);
-    } catch (error) {
-        console.warn('Default playlist not found or failed to load. Waiting for manual upload.');
-    }
-}
+        // Fetch the local m3u file directly from the same directory
+        const response = await fetch('./playlist.m3u');
+        if (!response.ok) throw new Error("Could not fetch playlist.m3u");
+        
+        const text = await response.text();
+        const lines = text.split('\n');
 
-// Simple M3U Parser
-function parseM3U(data) {
-    const lines = data.split('\n');
-    const parsedChannels = [];
-    let currentChannel = {};
+        channels = [];
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (line.startsWith('#EXTINF:')) {
+                // Extract channel name after the last comma
+                const parts = line.split(',');
+                const name = parts[parts.length - 1].trim();
 
-    for (let line of lines) {
-        line = line.trim();
-        if (line.startsWith('#EXTINF:')) {
-            const commaIndex = line.lastIndexOf(',');
-            currentChannel.name = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : 'Unknown Channel';
-        } else if (line && !line.startsWith('#')) {
-            currentChannel.url = line;
-            parsedChannels.push(currentChannel);
-            currentChannel = {};
+                // Find the next non-comment line which is the stream URL
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextLine = lines[j].trim();
+                    if (nextLine && !nextLine.startsWith('#')) {
+                        channels.push({ name: name, url: nextLine });
+                        break;
+                    }
+                    if (nextLine.startsWith('#EXTINF:')) break; // safety stop
+                }
+            }
         }
+
+        renderList(channels);
+    } catch (error) {
+        console.error('Error loading playlist:', error);
+        listDiv.innerHTML = '<div style="padding: 12px; color: #ff6b6b;">Error loading playlist.m3u. Check console.</div>';
     }
-    return parsedChannels;
 }
 
-// Render channel list to sidebar
-function renderChannels(channelArray) {
-    channelListEl.innerHTML = '';
-    
-    if (channelArray.length === 0) {
-        channelListEl.innerHTML = '<div class="no-playlist">No valid channels detected in stream.</div>';
+function renderList(list) {
+    listDiv.innerHTML = '';
+    if (list.length === 0) {
+        listDiv.innerHTML = '<div style="padding: 12px; color: #888;">No channels found</div>';
         return;
     }
 
-    channelArray.forEach((channel, index) => {
-        const item = document.createElement('div');
-        item.className = 'channel-item';
-        item.textContent = `${index + 1}. ${channel.name}`;
-        item.addEventListener('click', () => {
-            document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-            item.classList.add('active');
-            playChannel(channel);
-        });
-        channelListEl.appendChild(item);
+    list.forEach(ch => {
+        const btn = document.createElement('button');
+        btn.innerText = ch.name;
+        btn.onclick = () => {
+            if (Hls.isSupported()) {
+                hls.loadSource(ch.url);
+                hls.attachMedia(video);
+                video.play();
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = ch.url;
+                video.play();
+            }
+        };
+        listDiv.appendChild(btn);
     });
 }
 
-// Play channel logic with error handling
-function playChannel(channel) {
-    currentChannelNameEl.textContent = `PLAYING: ${channel.name.toUpperCase()}`;
-    
-    // Clean up previous HLS instance if it exists
-    if (hls) {
-        hls.destroy();
-        hls = null;
-    }
-
-    if (Hls.isSupported() && channel.url.includes('.m3u8')) {
-        hls = new Hls();
-        hls.loadSource(channel.url);
-        hls.attachMedia(videoPlayer);
-        
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            videoPlayer.play().catch(err => {
-                console.warn("Autoplay blocked or stream failed:", err);
-                currentChannelNameEl.textContent = `ERROR: PLAYBACK BLOCKED`;
-            });
-        });
-
-        // Catch stream loading/network errors
-        hls.on(Hls.Events.ERROR, (event, data) => {
-            if (data.fatal) {
-                switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        console.warn("Network error encountered. Check if the stream is offline or blocking HTTP/HTTPS.");
-                        currentChannelNameEl.textContent = `ERROR: NETWORK/CORS BLOCKED`;
-                        hls.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        console.warn("Media error encountered, trying to recover...");
-                        hls.recoverMediaError();
-                        break;
-                    default:
-                        currentChannelNameEl.textContent = `ERROR: STREAM UNAVAILABLE`;
-                        hls.destroy();
-                        break;
-                }
-            }
-        });
-    } else {
-        // Fallback for standard video sources (mp4, etc.)
-        videoPlayer.src = channel.url;
-        videoPlayer.play().catch(err => {
-            currentChannelNameEl.textContent = `ERROR: FORMAT NOT SUPPORTED`;
-        });
-    }
-}
-
-// Search / Filter functionality
 searchInput.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = channels.filter(c => c.name.toLowerCase().includes(term));
-    renderChannels(filtered);
+    const query = e.target.value.toLowerCase();
+    const filtered = channels.filter(ch => ch.name.toLowerCase().includes(query));
+    renderList(filtered);
 });
+
+loadPlaylist();
