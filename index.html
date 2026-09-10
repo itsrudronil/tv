@@ -11,26 +11,19 @@
     .container { max-width: 800px; margin: 0 auto; background: #1e293b; padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
     h2 { text-align: center; color: #38bdf8; margin-bottom: 15px; font-size: 20px; }
     
-    /* Player */
     .player-box { background: #000; border-radius: 8px; overflow: hidden; position: relative; aspect-ratio: 16 / 9; }
     video { width: 100%; height: 100%; display: block; }
     .now-playing { background: #0f172a; padding: 8px 12px; font-size: 13px; color: #38bdf8; border-radius: 6px; margin: 10px 0; text-align: center; font-weight: 500; }
 
-    /* Controls & Filters */
     .filter-section { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     select, input { flex: 1; min-width: 140px; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 13px; outline: none; }
     
-    /* Channel Grid */
-    .loading { text-align: center; padding: 20px; color: #94a3b8; font-size: 14px; }
+    .loading { text-align: center; padding: 20px; color: #facc15; font-size: 14px; background: #451a03; border-radius: 8px; margin-top: 10px; border: 1px solid #b45309; }
     .channel-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; max-height: 350px; overflow-y: auto; padding-right: 4px; }
-    .channel-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 90px; }
-    .channel-card:active, .channel-card:hover { border-color: #38bdf8; background: #1e293b; }
+    .channel-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 90px; }
+    .channel-card:active { border-color: #38bdf8; background: #1e293b; }
     .channel-card img { max-width: 40px; max-height: 40px; object-fit: contain; }
     .channel-card span { font-size: 11px; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-    /* Scrollbar Styling */
-    .channel-list::-webkit-scrollbar { width: 5px; }
-    .channel-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
   </style>
 </head>
 <body>
@@ -38,13 +31,11 @@
 <div class="container">
   <h2>IPTV Web Player</h2>
 
-  <!-- Video Player -->
   <div class="player-box">
     <video id="video" controls autoplay></video>
   </div>
   <div class="now-playing" id="currentChannel">চ্যানেল সিলেক্ট করুন...</div>
 
-  <!-- Category & Search Filters -->
   <div class="filter-section">
     <select id="categorySelect" onchange="filterChannels()">
       <option value="all">সব ক্যাটাগরি</option>
@@ -52,58 +43,78 @@
     <input type="text" id="searchInput" oninput="filterChannels()" placeholder="চ্যানেল খুঁজুন...">
   </div>
 
-  <!-- Channel List -->
-  <div id="loading" class="loading">চ্যানেল এবং ক্যাটাগরি লোড হচ্ছে...</div>
+  <div id="loading" class="loading">অপেক্ষা করুন, চ্যানেল লোড হচ্ছে... (এতে কিছুক্ষণ সময় লাগতে পারে)</div>
   <div id="channelList" class="channel-list"></div>
 </div>
 
 <script>
   const proxy = "https://plain-art-ebfe.soumyadeeptalukderrudronil.workers.dev/?url=";
-  const server = "https://dvltv.cc";
+  const server = "http://dvltv.cc:80";
   const user = "talukderrudronil";
   const pass = "talRudronil8";
 
   let allChannels = [];
   let hlsInstance = null;
 
-  // ১. পেজ লোড হলে ডাটা আনা
   window.onload = async () => {
     await loadCategories();
     await loadChannels();
   };
 
-  // ২. ক্যাটাগরি লোড করার ফাংশন
   async function loadCategories() {
     const apiUrl = `${server}/player_api.php?username=${user}&password=${pass}&action=get_live_categories`;
     try {
       const res = await fetch(proxy + encodeURIComponent(apiUrl));
-      const categories = await res.json();
-      const select = document.getElementById('categorySelect');
-      categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat.category_id;
-        opt.textContent = cat.category_name;
-        select.appendChild(opt);
-      });
+      const textData = await res.text(); 
+      
+      try {
+        const categories = JSON.parse(textData);
+        const select = document.getElementById('categorySelect');
+        categories.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat.category_id;
+          opt.textContent = cat.category_name;
+          select.appendChild(opt);
+        });
+      } catch (parseErr) {
+        console.error("JSON Error:", textData);
+        document.getElementById('loading').innerHTML = "<b>Category Error:</b> সার্ভার ব্লক করেছে অথবা আইপি-লক করা আছে!";
+      }
     } catch (err) {
-      console.error("Category Error:", err);
+      document.getElementById('loading').innerHTML = "<b>Proxy Error:</b> প্রক্সি কানেকশন ফেইল করেছে।";
     }
   }
 
-  // ৩. চ্যানেল লিস্ট লোড করার ফাংশন
   async function loadChannels() {
     const apiUrl = `${server}/player_api.php?username=${user}&password=${pass}&action=get_live_streams`;
     try {
       const res = await fetch(proxy + encodeURIComponent(apiUrl));
-      allChannels = await res.json();
-      document.getElementById('loading').style.display = 'none';
-      renderChannels(allChannels);
+      const textData = await res.text();
+
+      try {
+        allChannels = JSON.parse(textData);
+
+        if (allChannels && allChannels.user_info && allChannels.user_info.auth === 0) {
+           document.getElementById('loading').innerHTML = "<b>Auth Error:</b> ইউজারনেম/পাসওয়ার্ড ভুল বা মেয়াদ শেষ!";
+           return;
+        }
+
+        if(allChannels.length > 0) {
+            document.getElementById('loading').style.display = 'none';
+            renderChannels(allChannels);
+        } else {
+            document.getElementById('loading').innerHTML = "<b>Error:</b> চ্যানেল লিস্ট ফাঁকা আসছে!";
+        }
+      } catch (parseErr) {
+        console.error("JSON parsing failed in Channels");
+        document.getElementById('loading').innerHTML = "<b>API Error:</b> সার্ভার থেকে সঠিক ডাটা আসছে না। (হয়তো আপনার অ্যাকাউন্টটি অন্য আইপি বা প্রক্সির জন্য ব্লকড)";
+      }
+
     } catch (err) {
-      document.getElementById('loading').textContent = "চ্যানেল লোড করতে সমস্যা হয়েছে!";
+      document.getElementById('loading').innerHTML = "<b>Network Error:</b> চ্যানেল লোড টাইম-আউট হয়েছে।";
     }
   }
 
-  // ৪. ক্যাটাগরি ও সার্চ ফিল্টার
   function filterChannels() {
     const selectedCategory = document.getElementById('categorySelect').value;
     const searchQuery = document.getElementById('searchInput').value.toLowerCase();
@@ -117,44 +128,36 @@
     renderChannels(filtered);
   }
 
-  // ৫. চ্যানেল রেন্ডার করা
   function renderChannels(channels) {
     const listContainer = document.getElementById('channelList');
     listContainer.innerHTML = '';
 
     if (channels.length === 0) {
-      listContainer.innerHTML = '<div class="loading" style="grid-column: 1/-1;">কোনো চ্যানেল পাওয়া যায়নি!</div>';
+      listContainer.innerHTML = '<div style="color:red; text-align:center; grid-column: 1/-1;">কোনো চ্যানেল পাওয়া যায়নি!</div>';
       return;
     }
 
-    // মোবাইল পারফরম্যান্স স্মুথ রাখার জন্য একসাথে প্রথম ১৮০টি রেন্ডার হবে
-    channels.slice(0, 180).forEach(ch => {
+    channels.slice(0, 150).forEach(ch => {
       const card = document.createElement('div');
       card.className = 'channel-card';
-      
       const iconUrl = ch.stream_icon ? proxy + encodeURIComponent(ch.stream_icon) : '';
       
       card.innerHTML = `
         ${ch.stream_icon ? `<img src="${iconUrl}" onerror="this.style.display='none'">` : ''}
         <span>${ch.name}</span>
       `;
-
       card.onclick = () => playChannel(ch.stream_id, ch.name);
       listContainer.appendChild(card);
     });
   }
 
-  // ৬. ভিডিও প্লে করা
   function playChannel(streamId, channelName) {
     document.getElementById('currentChannel').textContent = "এখন চলছে: " + channelName;
-    
     const rawStreamUrl = `${server}/live/${user}/${pass}/${streamId}.m3u8`;
     const finalStreamUrl = proxy + encodeURIComponent(rawStreamUrl);
     const video = document.getElementById('video');
 
-    if (hlsInstance) {
-      hlsInstance.destroy();
-    }
+    if (hlsInstance) { hlsInstance.destroy(); }
 
     if (Hls.isSupported()) {
       hlsInstance = new Hls();
