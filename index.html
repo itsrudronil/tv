@@ -151,22 +151,61 @@
     });
   }
 
-  function playChannel(streamId, channelName) {
+    function playChannel(streamId, channelName) {
     document.getElementById('currentChannel').textContent = "এখন চলছে: " + channelName;
+    
+    // m3u8 এর বদলে .ts বা .m3u8 চেক করে প্লে করা
     const rawStreamUrl = `${server}/live/${user}/${pass}/${streamId}.m3u8`;
     const finalStreamUrl = proxy + encodeURIComponent(rawStreamUrl);
     const video = document.getElementById('video');
 
-    if (hlsInstance) { hlsInstance.destroy(); }
+    if (hlsInstance) { 
+      hlsInstance.destroy(); 
+    }
 
     if (Hls.isSupported()) {
-      hlsInstance = new Hls();
+      // HLS কনফিগারেশনে xhrSetup যোগ করা হলো যেন প্রতিটি ফ্র্যাগমেন্টও প্রক্সির মাধ্যমে যায়
+      hlsInstance = new Hls({
+        xhrSetup: function(xhr, url) {
+          // যদি URL প্রক্সির না হয়, তবে সেটিকেও প্রক্সির ভেতর দিয়ে পাস করানো
+          if (!url.startsWith(proxy)) {
+             xhr.open('GET', proxy + encodeURIComponent(url), true);
+          } else {
+             xhr.open('GET', url, true);
+          }
+        }
+      });
       hlsInstance.loadSource(finalStreamUrl);
       hlsInstance.attachMedia(video);
-      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+         video.play().catch(e => console.log("Play error:", e));
+      });
+      
+      // এরর ধরার জন্য
+      hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log("fatal network error encountered, try to recover");
+              hlsInstance.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log("fatal media error encountered, try to recover");
+              hlsInstance.recoverMediaError();
+              break;
+            default:
+              hlsInstance.destroy();
+              break;
+          }
+        }
+      });
+      
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = finalStreamUrl;
-      video.addEventListener('loadedmetadata', () => video.play());
+      video.addEventListener('loadedmetadata', () => {
+         video.play().catch(e => console.log("Play error:", e));
+      });
+    }
     }
   }
 </script>
